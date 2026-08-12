@@ -1,0 +1,102 @@
+{
+  "name": "inventory-service",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/inventory-service/src",
+  "projectType": "application",
+  "tags": ["type:service"],
+  "targets": {
+    "build": {
+      "executor": "@nx/esbuild:esbuild",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "platform": "node",
+        "outputPath": "apps/inventory-service/dist",
+        "format": ["cjs"],
+        "bundle": false,
+        "main": "apps/inventory-service/src/server.ts",
+        "tsConfig": "apps/inventory-service/tsconfig.app.json",
+        "assets": [
+          "apps/inventory-service/src/assets",
+          {
+            "input": "apps/inventory-service/src/graphql/schema",
+            "glob": "*.graphql",
+            "output": "apps/inventory-service/src/graphql/schema"
+          },
+          {
+            "input": "apps/inventory-service/src/generated/prisma-client",
+            "glob": "**/*",
+            "output": "apps/inventory-service/src/generated/prisma-client"
+          }
+        ],
+        "esbuildOptions": {
+          "sourcemap": true,
+          "outExtension": {
+            ".js": ".js"
+          }
+        }
+      },
+      "configurations": {
+        "development": {},
+        "production": {
+          "esbuildOptions": {
+            "sourcemap": false,
+            "outExtension": {
+              ".js": ".js"
+            }
+          }
+        }
+      }
+    },
+    "prune-lockfile": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "executor": "@nx/js:prune-lockfile",
+      "outputs": [
+        "{workspaceRoot}/apps/inventory-service/dist/package.json",
+        "{workspaceRoot}/apps/inventory-service/dist/package-lock.json"
+      ],
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "copy-workspace-modules": {
+      "dependsOn": ["build"],
+      "cache": true,
+      "outputs": [
+        "{workspaceRoot}/apps/inventory-service/dist/workspace_modules"
+      ],
+      "executor": "@nx/js:copy-workspace-modules",
+      "options": {
+        "buildTarget": "build"
+      }
+    },
+    "prune": {
+      "dependsOn": ["prune-lockfile", "copy-workspace-modules"],
+      "executor": "nx:noop"
+    },
+    "serve": {
+      "continuous": true,
+      "executor": "@nx/js:node",
+      "defaultConfiguration": "development",
+      "dependsOn": ["build"],
+      "options": {
+        "buildTarget": "inventory-service:build",
+        "runBuildTargetDependencies": false
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "inventory-service:build:development"
+        },
+        "production": {
+          "buildTarget": "inventory-service:build:production"
+        }
+      }
+    },
+    "test": {
+      "options": {
+        "passWithNoTests": true
+      }
+    }
+  }
+}

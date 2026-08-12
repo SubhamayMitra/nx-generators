@@ -1,0 +1,24 @@
+@use '../../tokens' as tokens;
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: tokens.space('lg');
+  padding: tokens.space('sm') tokens.space('lg');
+  background-color: tokens.color('bg');
+  border-bottom: 1px solid tokens.color('border');
+}
+
+.nav {
+  display: flex;
+  gap: tokens.space('md');
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.searchSlot {
+  flex: 1;
+  max-width: 24rem;
+}

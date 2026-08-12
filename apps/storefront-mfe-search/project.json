@@ -1,0 +1,34 @@
+{
+  "name": "storefront-mfe-search",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/storefront-mfe-search/src",
+  "projectType": "application",
+  "tags": ["type:mfe"],
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "continuous": true,
+      "options": {
+        "command": "rspack serve --mode=development",
+        "cwd": "apps/storefront-mfe-search"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "rspack build --mode=production",
+        "cwd": "apps/storefront-mfe-search"
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/apps/storefront-mfe-search"],
+      "options": {
+        "jestConfig": "apps/storefront-mfe-search/jest.config.cts"
+      }
+    }
+  },
+  "metadata": {
+    "mfeState": "none"
+  }
+}

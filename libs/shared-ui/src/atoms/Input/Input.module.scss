@@ -1,0 +1,18 @@
+@use '../../tokens' as tokens;
+
+.input {
+  display: block;
+  width: 100%;
+  border: 1px solid tokens.color('border');
+  border-radius: tokens.radius('sm');
+  padding: tokens.space('xs') tokens.space('sm');
+  font-family: tokens.font-family('base');
+  font-size: tokens.font-size('md');
+  color: tokens.color('text');
+  background-color: tokens.color('bg');
+
+  &:focus {
+    outline: 2px solid tokens.color('primary');
+    outline-offset: 1px;
+  }
+}

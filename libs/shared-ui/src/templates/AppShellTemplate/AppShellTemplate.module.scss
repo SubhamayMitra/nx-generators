@@ -1,0 +1,20 @@
+@use '../../tokens' as tokens;
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: tokens.color('bg-subtle');
+}
+
+.main {
+  flex: 1;
+  padding: tokens.space('lg');
+}
+
+.footer {
+  padding: tokens.space('md') tokens.space('lg');
+  border-top: 1px solid tokens.color('border');
+  color: tokens.color('text-muted');
+  font-size: tokens.font-size('sm');
+}

@@ -1,0 +1,29 @@
+@use 'sass:map';
+@use 'colors';
+@use 'spacing';
+@use 'typography';
+@use 'radii';
+
+@function color($key) {
+  @return map.get(colors.$colors, $key);
+}
+
+@function space($key) {
+  @return map.get(spacing.$spacing, $key);
+}
+
+@function font-family($key) {
+  @return map.get(typography.$font-family, $key);
+}
+
+@function font-size($key) {
+  @return map.get(typography.$font-size, $key);
+}
+
+@function font-weight($key) {
+  @return map.get(typography.$font-weight, $key);
+}
+
+@function radius($key) {
+  @return map.get(radii.$radii, $key);
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "$id": "GraphqlService",
+  "title": "GraphqlService",
+  "description": "Scaffold a new GraphQL microservice, standalone or federated.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Service name, e.g. search (the app is created at apps/<name>-service).",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "What name would you like to use for this service (e.g. search)?"
+    },
+    "datasource": {
+      "type": "string",
+      "description": "Which datasource this service's example uses.",
+      "enum": ["rest", "sql", "nosql"],
+      "x-prompt": {
+        "message": "Which datasource should this service use?",
+        "type": "list",
+        "items": [
+          { "value": "rest", "label": "REST — wraps an external REST API" },
+          { "value": "sql", "label": "SQL — Prisma + SQLite (local dev)" },
+          { "value": "nosql", "label": "NoSQL — MongoDB driver" }
+        ]
+      }
+    },
+    "gateway": {
+      "type": "string",
+      "description": "Federation mode. Omit to auto-detect: existing if apps/gateway is present, otherwise none — federation is never enabled automatically.",
+      "enum": ["none", "new", "existing"]
+    }
+  },
+  "required": ["name", "datasource"]
+}

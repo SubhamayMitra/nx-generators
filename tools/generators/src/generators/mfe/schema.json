@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "$id": "Mfe",
+  "title": "Mfe",
+  "description": "Scaffold a new MFE app scoped to a specific shell.",
+  "type": "object",
+  "properties": {
+    "shellName": {
+      "type": "string",
+      "description": "Base name of the target shell, e.g. storefront (must already exist as apps/<shellName>-shell).",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "Which shell is this MFE for (e.g. storefront)?"
+    },
+    "name": {
+      "type": "string",
+      "description": "MFE name, e.g. search (the app is created at apps/<shellName>-mfe-<name>).",
+      "$default": { "$source": "argv", "index": 1 },
+      "x-prompt": "What name would you like to use for this MFE (e.g. search)?"
+    },
+    "bundler": {
+      "type": "string",
+      "description": "Module Federation bundler. Defaults to the target shell's own bundler.",
+      "enum": ["rspack", "webpack"]
+    },
+    "state": {
+      "type": "string",
+      "description": "State management option for this MFE.",
+      "enum": ["rtk", "zustand", "react-query", "none"],
+      "default": "none"
+    }
+  },
+  "required": ["shellName", "name"]
+}

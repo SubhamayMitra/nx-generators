@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+  // Prisma 7 generates to a single shared node_modules/@prisma/client by
+  // default — fatal in a monorepo with multiple services, each with its
+  // own schema: whichever service last ran `prisma generate` silently
+  // clobbers every other service's generated client/types. Scoping output
+  // per service avoids that collision entirely.
+  output   = "../src/generated/prisma-client"
+}
+
+// Prisma 7: no "url" here — connection info lives in prisma.config.ts (for
+// the CLI) and is passed to the driver adapter at the PrismaClient
+// constructor (for runtime queries). See datasources/sql/prisma-client.ts.
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id    String @id @default(uuid())
+  name  String
+  email String @unique
+}
+
+model SavedSearch {
+  id        String   @id @default(uuid())
+  name      String
+  query     String
+  createdAt DateTime @default(now())
+}

@@ -1,0 +1,11 @@
+// Single entry point for design tokens. Every app/MFE and every
+// shared-ui component references tokens through this file rather than
+// redefining colors/spacing/typography/radii locally:
+//
+//   @use '@nx-generators/shared-ui/tokens' as tokens;
+//   .button { background: tokens.color('primary'); padding: tokens.space('sm'); }
+@forward 'colors';
+@forward 'spacing';
+@forward 'typography';
+@forward 'radii';
+@forward 'functions';

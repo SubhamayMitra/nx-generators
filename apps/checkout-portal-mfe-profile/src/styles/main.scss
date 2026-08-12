@@ -1,0 +1,6 @@
+@use '@nx-generators/shared-ui/tokens' as tokens;
+
+body {
+  margin: 0;
+  font-family: tokens.font-family('base');
+}

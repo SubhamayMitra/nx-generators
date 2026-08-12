@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/schema",
+  "$id": "Shell",
+  "title": "Shell",
+  "description": "Scaffold a new host (shell) application that composes MFEs at runtime.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Base name for the shell, e.g. storefront (the app is created at apps/<name>-shell).",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "What name would you like to use for this shell (e.g. storefront)?"
+    },
+    "bundler": {
+      "type": "string",
+      "description": "Module Federation bundler for this shell.",
+      "enum": ["rspack", "webpack"],
+      "default": "rspack"
+    }
+  },
+  "required": ["name"]
+}

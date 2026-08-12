@@ -1,0 +1,24 @@
+{
+  "generators": {
+    "shell": {
+      "factory": "./dist/generators/shell/shell",
+      "schema": "./dist/generators/shell/schema.json",
+      "description": "Scaffold a new host (shell) application that composes MFEs at runtime"
+    },
+    "mfe": {
+      "factory": "./dist/generators/mfe/mfe",
+      "schema": "./dist/generators/mfe/schema.json",
+      "description": "Scaffold a new MFE app scoped to a specific shell"
+    },
+    "feature": {
+      "factory": "./dist/generators/feature/feature",
+      "schema": "./dist/generators/feature/schema.json",
+      "description": "Scaffold a new feature/module inside an existing MFE"
+    },
+    "graphql-service": {
+      "factory": "./dist/generators/graphql-service/graphql-service",
+      "schema": "./dist/generators/graphql-service/schema.json",
+      "description": "Scaffold a new GraphQL microservice, standalone or federated"
+    }
+  }
+}

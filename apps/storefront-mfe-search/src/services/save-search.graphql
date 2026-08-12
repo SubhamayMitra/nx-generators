@@ -1,0 +1,7 @@
+mutation SaveSearch($input: SaveSearchInput!) {
+  saveSearch(input: $input) {
+    id
+    name
+    query
+  }
+}

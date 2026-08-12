@@ -1,0 +1,11 @@
+@use '../../tokens' as tokens;
+
+.form {
+  display: flex;
+  gap: tokens.space('xs');
+  align-items: center;
+}
+
+.input {
+  flex: 1;
+}

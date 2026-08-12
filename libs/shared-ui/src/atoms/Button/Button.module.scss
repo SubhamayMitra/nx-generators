@@ -1,0 +1,40 @@
+@use '../../tokens' as tokens;
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: tokens.space('xs');
+  border: none;
+  border-radius: tokens.radius('sm');
+  padding: tokens.space('xs') tokens.space('md');
+  font-family: tokens.font-family('base');
+  font-size: tokens.font-size('md');
+  font-weight: tokens.font-weight('medium');
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+
+.primary {
+  background-color: tokens.color('primary');
+  color: tokens.color('primary-contrast');
+
+  &:hover:not(:disabled) {
+    background-color: tokens.color('primary-hover');
+  }
+}
+
+.secondary {
+  background-color: tokens.color('bg-subtle');
+  color: tokens.color('text');
+  border: 1px solid tokens.color('border');
+
+  &:hover:not(:disabled) {
+    background-color: tokens.color('border');
+  }
+}

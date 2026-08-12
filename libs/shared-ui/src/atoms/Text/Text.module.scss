@@ -1,0 +1,23 @@
+@use '../../tokens' as tokens;
+
+.text {
+  font-family: tokens.font-family('base');
+  margin: 0;
+}
+
+.sm {
+  font-size: tokens.font-size('sm');
+}
+.md {
+  font-size: tokens.font-size('md');
+}
+.lg {
+  font-size: tokens.font-size('lg');
+}
+.xl {
+  font-size: tokens.font-size('xl');
+}
+
+.muted {
+  color: tokens.color('text-muted');
+}

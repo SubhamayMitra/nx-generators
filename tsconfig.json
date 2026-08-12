@@ -2,6 +2,55 @@
   "extends": "./tsconfig.base.json",
   "compileOnSave": false,
   "files": [],
-  "references": [],
+  "references": [
+    {
+      "path": "./libs/shared-validation"
+    },
+    {
+      "path": "./libs/shared-types"
+    },
+    {
+      "path": "./libs/shared-state"
+    },
+    {
+      "path": "./libs/graphql-client"
+    },
+    {
+      "path": "./libs/graphql-service-core"
+    },
+    {
+      "path": "./libs/shared-ui"
+    },
+    {
+      "path": "./tools/generators"
+    },
+    {
+      "path": "./apps/storefront-shell"
+    },
+    {
+      "path": "./apps/storefront-mfe-search"
+    },
+    {
+      "path": "./apps/storefront-mfe-checkout"
+    },
+    {
+      "path": "./apps/search-service"
+    },
+    {
+      "path": "./apps/gateway"
+    },
+    {
+      "path": "./apps/inventory-service"
+    },
+    {
+      "path": "./apps/internal-reporting-service"
+    },
+    {
+      "path": "./apps/checkout-portal-mfe-profile"
+    },
+    {
+      "path": "./apps/checkout-portal-shell"
+    }
+  ],
   "compilerOptions": {}
 }

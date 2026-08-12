@@ -1,0 +1,39 @@
+extend schema
+  @link(
+    url: "https://specs.apollo.dev/federation/v2.6"
+    import: ["@key", "@shareable"]
+  )
+
+type Query {
+  searchHealth: String! @shareable
+}
+
+type Mutation {
+  createSearchUser(input: CreateSearchUserInput!): SearchUser!
+  saveSearch(input: SaveSearchInput!): SavedSearch!
+}
+
+input CreateSearchUserInput {
+  name: String!
+  email: String!
+}
+
+type SearchUser @key(fields: "id") {
+  id: ID!
+  name: String!
+  email: String!
+}
+
+# Mirrors libs/shared-validation's saveSearchInputSchema — the same schema
+# validates this input server-side (see validation/) and the Formik form
+# in storefront-mfe-search's saved-searches feature client-side.
+input SaveSearchInput {
+  name: String!
+  query: String!
+}
+
+type SavedSearch {
+  id: ID!
+  name: String!
+  query: String!
+}

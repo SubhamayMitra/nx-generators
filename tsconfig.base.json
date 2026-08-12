@@ -15,8 +15,9 @@
     "noUnusedLocals": true,
     "skipLibCheck": true,
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "target": "es2022",
-    "customConditions": ["@org/source"],
+    "customConditions": ["nx-generators"],
     "noUncheckedSideEffectImports": false,
     "types": ["*"]
   }
