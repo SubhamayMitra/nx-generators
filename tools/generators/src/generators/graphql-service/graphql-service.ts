@@ -14,6 +14,7 @@ import {
   type GatewayMode,
 } from '../../utils/ensure-gateway';
 import { addProjectTags } from '../../utils/add-project-tags';
+import { pickBackendPort } from '../../utils/pick-service-port';
 import type { GraphqlServiceGeneratorSchema } from './schema';
 
 export async function graphqlServiceGenerator(
@@ -21,13 +22,20 @@ export async function graphqlServiceGenerator(
   options: GraphqlServiceGeneratorSchema,
 ) {
   const projectName = `${options.name}-service`;
-  const projectRoot = `apps/${projectName}`;
+  const product = normalizeProduct(options.product);
+  // A product-owned service nests alongside its product's shell/MFEs and
+  // its own gateway; a standalone service (no product) stays flat, same
+  // as before this workspace had a notion of "product" at all.
+  const projectRoot = product
+    ? `apps/${product}/${projectName}`
+    : `apps/${projectName}`;
 
-  const gatewayMode = resolveGatewayMode(tree, options.gateway);
-  validateGatewayMode(tree, gatewayMode);
+  const gatewayMode = resolveGatewayMode(tree, product, options.gateway);
+  validateGatewayMode(tree, product, gatewayMode);
 
   await applicationGenerator(tree, {
     directory: projectRoot,
+    name: projectName,
     bundler: 'esbuild',
     framework: 'none',
     unitTestRunner: 'jest',
@@ -42,7 +50,7 @@ export async function graphqlServiceGenerator(
     tree.delete(mainSpecPath);
   }
 
-  const port = pickServicePort(tree);
+  const port = pickBackendPort(tree, 4001);
 
   writeGraphqlLayer(tree, projectRoot, options.name, gatewayMode);
   writeValidationLayer(tree, projectRoot);
@@ -54,9 +62,16 @@ export async function graphqlServiceGenerator(
   patchBuildAssets(tree, projectName, projectRoot, options.datasource);
   addProjectTags(tree, projectName, ['type:service']);
   addServiceDependencies(tree, projectRoot, options.datasource, gatewayMode);
-  writeReadme(tree, projectRoot, projectName, options.datasource, gatewayMode);
+  writeReadme(
+    tree,
+    projectRoot,
+    projectName,
+    options.datasource,
+    product,
+    gatewayMode,
+  );
 
-  await ensureGateway(tree, gatewayMode, {
+  await ensureGateway(tree, product, gatewayMode, {
     name: options.name,
     url: `http://localhost:${port}/graphql`,
   });
@@ -64,28 +79,9 @@ export async function graphqlServiceGenerator(
   await formatFiles(tree);
 }
 
-/** Scans every existing *-service's server.ts for its port so a new one never collides (4000 is reserved for the gateway). */
-function pickServicePort(tree: Tree): number {
-  const usedPorts = new Set<number>([4000]);
-  if (tree.exists('apps')) {
-    for (const appDir of tree.children('apps')) {
-      if (!appDir.endsWith('-service')) {
-        continue;
-      }
-      const content = tree.read(`apps/${appDir}/src/server.ts`, 'utf-8');
-      const port = content
-        ? /process\.env\['PORT'\] \?\? (\d+)/.exec(content)?.[1]
-        : undefined;
-      if (port) {
-        usedPorts.add(Number(port));
-      }
-    }
-  }
-  let candidate = 4001;
-  while (usedPorts.has(candidate)) {
-    candidate += 1;
-  }
-  return candidate;
+function normalizeProduct(product: string | undefined): string | undefined {
+  const trimmed = product?.trim();
+  return trimmed ? trimmed : undefined;
 }
 
 function writeGraphqlLayer(
@@ -653,12 +649,13 @@ function writeReadme(
   projectRoot: string,
   projectName: string,
   datasource: GraphqlServiceGeneratorSchema['datasource'],
+  product: string | undefined,
   gatewayMode: GatewayMode,
 ): void {
   const federationNote =
     gatewayMode === 'none'
-      ? 'Standalone — no federation directives, no dependency on apps/gateway.'
-      : `Federated subgraph, registered in apps/gateway (${gatewayMode === 'new' ? 'created by this generator run' : 'already existed'}).`;
+      ? 'Standalone — no federation directives, no dependency on any gateway.'
+      : `Federated subgraph, registered in apps/${product}/gateway (${gatewayMode === 'new' ? 'created by this generator run' : 'already existed'}).`;
 
   const datasourceSetup =
     datasource === 'sql'

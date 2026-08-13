@@ -25,31 +25,25 @@
       "path": "./tools/generators"
     },
     {
-      "path": "./apps/storefront-shell"
+      "path": "./apps/checkout-portal/mfe-profile"
     },
     {
-      "path": "./apps/storefront-mfe-search"
+      "path": "./apps/storefront/mfe-checkout"
     },
     {
-      "path": "./apps/storefront-mfe-checkout"
+      "path": "./apps/checkout-portal/shell"
     },
     {
-      "path": "./apps/search-service"
+      "path": "./apps/storefront/mfe-search"
     },
     {
-      "path": "./apps/gateway"
+      "path": "./apps/storefront/shell"
     },
     {
-      "path": "./apps/inventory-service"
+      "path": "./apps/storefront/search-service"
     },
     {
-      "path": "./apps/internal-reporting-service"
-    },
-    {
-      "path": "./apps/checkout-portal-mfe-profile"
-    },
-    {
-      "path": "./apps/checkout-portal-shell"
+      "path": "./apps/storefront/gateway"
     }
   ],
   "compilerOptions": {}

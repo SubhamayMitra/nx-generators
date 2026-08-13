@@ -26,8 +26,14 @@ describe('shell generator', () => {
 
   it('starts with no MFEs registered', async () => {
     await shellGenerator(tree, options);
-    const mf = tree.read('apps/test-shell/src/mf.ts', 'utf-8');
+    const mf = tree.read('apps/test/shell/src/mf.ts', 'utf-8');
     expect(mf).toContain('const PROVIDERS');
     expect(mf).not.toMatch(/alias:\s*'/);
+  });
+
+  it('nests the shell under its own product folder', async () => {
+    await shellGenerator(tree, options);
+    const config = readProjectConfiguration(tree, 'test-shell');
+    expect(config.root).toBe('apps/test/shell');
   });
 });

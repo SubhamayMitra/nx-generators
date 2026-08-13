@@ -13,14 +13,15 @@ export async function featureGenerator(
   tree: Tree,
   options: FeatureGeneratorSchema,
 ) {
-  const projectRoot = `apps/${options.mfeName}`;
-  if (!tree.exists(joinPathFragments(projectRoot, 'project.json'))) {
+  let config: ReturnType<typeof readProjectConfiguration>;
+  try {
+    config = readProjectConfiguration(tree, options.mfeName);
+  } catch {
     throw new Error(
-      `No MFE named "${options.mfeName}" found at ${projectRoot}. Run \`nx g mfe <shell> <name>\` first.`,
+      `No MFE named "${options.mfeName}" found. Run \`nx g mfe <shell> <name>\` first.`,
     );
   }
-
-  const config = readProjectConfiguration(tree, options.mfeName);
+  const projectRoot = config.root;
   const state =
     ((config.metadata as Record<string, unknown> | undefined)?.['mfeState'] as
       MfeState | undefined) ?? 'none';

@@ -28,9 +28,15 @@ describe('mfe generator', () => {
     expect(config).toBeDefined();
   });
 
+  it('nests the MFE alongside its shell in the same product folder', async () => {
+    await mfeGenerator(tree, options);
+    const config = readProjectConfiguration(tree, 'demo-mfe-test');
+    expect(config.root).toBe('apps/demo/mfe-test');
+  });
+
   it('registers only into its own shell', async () => {
     await mfeGenerator(tree, options);
-    const mf = tree.read('apps/demo-shell/src/mf.ts', 'utf-8');
+    const mf = tree.read('apps/demo/shell/src/mf.ts', 'utf-8');
     expect(mf).toContain("alias: 'test'");
   });
 });

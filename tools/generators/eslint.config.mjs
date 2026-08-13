@@ -9,6 +9,11 @@ export default [
         'error',
         {
           ignoredFiles: ['{projectRoot}/eslint.config.{js,cjs,mjs,ts,cts,mts}'],
+          // @nx/workspace is only referenced dynamically (loadNxGenerator's
+          // require.resolve('@nx/workspace/package.json'), for the `move`
+          // generator relocate-project.ts wraps) — invisible to this rule's
+          // static import analysis, but a real, declared dependency.
+          ignoredDependencies: ['@nx/workspace'],
         },
       ],
     },

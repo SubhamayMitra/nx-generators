@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import {
   formatFiles,
   joinPathFragments,
@@ -18,6 +19,7 @@ import { patchRspackConfigForWorkspace } from '../../utils/patch-rspack-config';
 import { writeAppJestConfig } from '../../utils/write-app-jest-config';
 import { pickAvailablePort } from '../../utils/pick-available-port';
 import { addProjectTags } from '../../utils/add-project-tags';
+import { relocateProject } from '../../utils/relocate-project';
 import type { MfeGeneratorSchema } from './schema';
 
 interface ProviderGeneratorSchema {
@@ -35,10 +37,12 @@ const EXPOSE_NAME = 'App';
 
 export async function mfeGenerator(tree: Tree, options: MfeGeneratorSchema) {
   const shellProjectName = `${options.shellName}-shell`;
-  const shellProjectRoot = `apps/${shellProjectName}`;
-  if (!tree.exists(joinPathFragments(shellProjectRoot, 'project.json'))) {
+  let shellProjectRoot: string;
+  try {
+    shellProjectRoot = readProjectConfiguration(tree, shellProjectName).root;
+  } catch {
     throw new Error(
-      `No shell named "${shellProjectName}" found at ${shellProjectRoot}. Run \`nx g shell ${options.shellName}\` first.`,
+      `No shell named "${shellProjectName}" found. Run \`nx g shell ${options.shellName}\` first.`,
     );
   }
 
@@ -56,7 +60,10 @@ export async function mfeGenerator(tree: Tree, options: MfeGeneratorSchema) {
   }
 
   const projectName = `${options.shellName}-mfe-${options.name}`;
-  const projectRoot = `apps/${projectName}`;
+  // Sibling of the shell's own directory within the same product folder,
+  // e.g. apps/storefront/mfe-search alongside apps/storefront/shell.
+  const productDir = path.posix.dirname(shellProjectRoot);
+  const projectRoot = joinPathFragments(productDir, `mfe-${options.name}`);
 
   if (bundler === 'rspack') {
     // @nx/react:provider always defaults to the same base port regardless
@@ -64,12 +71,20 @@ export async function mfeGenerator(tree: Tree, options: MfeGeneratorSchema) {
     // collision detection. Pick a free one ourselves by scanning every
     // existing app's rspack.config.ts before generating.
     const port = pickAvailablePort(tree, 8101);
+    // @nx/react:provider infers both the project name and the Module
+    // Federation container name from --directory's trailing segment (no
+    // separate `name` option) — generate under a directory whose trailing
+    // segment already IS `projectName`, so both come out correctly (e.g.
+    // NAME = storefront_mfe_search, not just mfe_search), then relocate to
+    // the shorter final `projectRoot` below.
+    const generateRoot = joinPathFragments(productDir, projectName);
     await providerGenerator(tree, {
-      directory: projectRoot,
+      directory: generateRoot,
       bundler: 'rspack',
       exposeName: EXPOSE_NAME,
       port,
     });
+    await relocateProject(tree, projectName, projectRoot);
     scaffoldRspackMfe(tree, projectRoot);
     writeAppLayer(tree, projectRoot, options);
     writeAppJestConfig(tree, projectRoot, projectName);
@@ -87,8 +102,11 @@ export async function mfeGenerator(tree: Tree, options: MfeGeneratorSchema) {
       federationName,
     );
   } else {
+    // Unlike :provider, :remote accepts an explicit `name` distinct from
+    // `directory`, so no relocate-after-generate dance is needed here.
     await remoteGenerator(tree, {
       directory: projectRoot,
+      name: projectName,
       bundler: 'webpack',
       dynamic: true,
       style: 'scss',
@@ -106,7 +124,7 @@ export async function mfeGenerator(tree: Tree, options: MfeGeneratorSchema) {
     );
   }
 
-  patchAppTsconfig(tree, joinPathFragments(projectRoot, 'tsconfig.json'));
+  patchAppTsconfig(tree, projectRoot);
   addProjectTags(tree, projectName, ['type:mfe']);
   addAppDependencies(tree, projectRoot, options.state ?? 'none');
   persistStateMetadata(tree, projectName, options.state ?? 'none');

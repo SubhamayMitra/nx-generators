@@ -1,5 +1,6 @@
 import {
   joinPathFragments,
+  offsetFromRoot,
   readProjectConfiguration,
   updateProjectConfiguration,
   type Tree,
@@ -17,18 +18,22 @@ export function writeAppJestConfig(
   projectRoot: string,
   projectName: string,
 ): void {
+  // Computed from projectRoot (via offsetFromRoot) rather than hardcoded,
+  // since a shell/MFE nested one level under its product folder
+  // (apps/<product>/shell) needs one more `../` than a top-level app would.
+  const offset = offsetFromRoot(projectRoot);
   tree.write(
     joinPathFragments(projectRoot, 'jest.config.cts'),
     `module.exports = {
   displayName: '${projectName}',
-  preset: '../../jest.preset.js',
+  preset: '${offset}jest.preset.js',
   testEnvironment: 'jsdom',
   transform: {
     '^.+\\\\.[tj]sx?$': ['babel-jest', { presets: ['@nx/react/babel'] }],
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
-  coverageDirectory: '../../coverage/apps/${projectName}',
+  coverageDirectory: '${offset}coverage/apps/${projectName}',
 };
 `,
   );

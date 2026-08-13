@@ -6,6 +6,7 @@ import {
   type Tree,
 } from '@nx/devkit';
 import { applicationGenerator } from '@nx/node';
+import { pickBackendPort } from './pick-service-port';
 
 export type GatewayMode = 'none' | 'new' | 'existing';
 
@@ -14,72 +15,112 @@ export interface SubgraphEntry {
   url: string;
 }
 
-export const GATEWAY_ROOT = 'apps/gateway';
+/**
+ * Gateways are per-product (apps/<product>/gateway, project name
+ * <product>-gateway) — there's no single global gateway a service can
+ * silently join regardless of which product it belongs to. A service
+ * generated without --product has no gateway to attach to at all.
+ */
+export function gatewayRoot(product: string): string {
+  return `apps/${product}/gateway`;
+}
 
-export function gatewayExists(tree: Tree): boolean {
+export function gatewayExists(tree: Tree, product: string): boolean {
+  const root = gatewayRoot(product);
   return (
-    tree.exists(joinPathFragments(GATEWAY_ROOT, 'project.json')) ||
-    tree.exists(joinPathFragments(GATEWAY_ROOT, 'package.json'))
+    tree.exists(joinPathFragments(root, 'project.json')) ||
+    tree.exists(joinPathFragments(root, 'package.json'))
   );
 }
 
-/** Auto-detect per spec: `existing` if a gateway is present, else `none` — federation is opt-in only, never automatic. */
+/** Auto-detect per spec: `existing` if this product's gateway is present, else `none` — federation is opt-in only, never automatic. */
 export function resolveGatewayMode(
   tree: Tree,
+  product: string | undefined,
   requested: GatewayMode | undefined,
 ): GatewayMode {
-  return requested ?? (gatewayExists(tree) ? 'existing' : 'none');
+  // An explicit request always passes through as-is — even an invalid one
+  // (e.g. --gateway=new with no --product) — so validateGatewayMode can
+  // reject it with a clear, specific error instead of this function
+  // silently downgrading it to 'none'.
+  if (requested) {
+    return requested;
+  }
+  if (!product) {
+    return 'none';
+  }
+  return gatewayExists(tree, product) ? 'existing' : 'none';
 }
 
-export function validateGatewayMode(tree: Tree, mode: GatewayMode): void {
-  const exists = gatewayExists(tree);
+export function validateGatewayMode(
+  tree: Tree,
+  product: string | undefined,
+  mode: GatewayMode,
+): void {
+  if (mode === 'none') {
+    return;
+  }
+  if (!product) {
+    throw new Error(
+      `--gateway=${mode} requires --product — a service with no product owner can't be federated. Pass --product=<product>, or use --gateway=none.`,
+    );
+  }
+  const exists = gatewayExists(tree, product);
   if (mode === 'new' && exists) {
     throw new Error(
-      'apps/gateway already exists. Use --gateway=existing to register this service in it instead.',
+      `${gatewayRoot(product)} already exists. Use --gateway=existing to register this service in it instead.`,
     );
   }
   if (mode === 'existing' && !exists) {
     throw new Error(
-      'No apps/gateway found yet. Use --gateway=new to create it and register this service as its first subgraph.',
+      `No ${gatewayRoot(product)} found yet. Use --gateway=new to create it and register this service as its first subgraph.`,
     );
   }
 }
 
 /**
- * The idempotent registration algorithm: `new` scaffolds apps/gateway and
- * writes the single-entry subgraph list; `existing` appends to it (no-op if
- * this service is already registered, warns instead of clobbering if it's
- * registered under a different URL).
+ * The idempotent registration algorithm: `new` scaffolds apps/<product>/gateway
+ * and writes the single-entry subgraph list; `existing` appends to it
+ * (no-op if this service is already registered, warns instead of
+ * clobbering if it's registered under a different URL).
  */
 export async function ensureGateway(
   tree: Tree,
+  product: string | undefined,
   mode: GatewayMode,
   entry: SubgraphEntry,
 ): Promise<void> {
   if (mode === 'none') {
     return;
   }
+  // validateGatewayMode already guarantees product is set whenever mode !== 'none'.
+  const root = gatewayRoot(product as string);
   if (mode === 'new') {
-    await scaffoldGateway(tree);
-    writeSubgraphsJson(tree, { subgraphs: [entry] });
+    await scaffoldGateway(tree, product as string, root);
+    writeSubgraphsJson(root, tree, { subgraphs: [entry] });
     return;
   }
-  upsertSubgraphEntry(tree, entry);
+  upsertSubgraphEntry(tree, root, entry);
 }
 
-function subgraphsJsonPath(): string {
-  return joinPathFragments(GATEWAY_ROOT, 'src/subgraphs.json');
+function subgraphsJsonPath(root: string): string {
+  return joinPathFragments(root, 'src/subgraphs.json');
 }
 
 function writeSubgraphsJson(
+  root: string,
   tree: Tree,
   data: { subgraphs: SubgraphEntry[] },
 ): void {
-  tree.write(subgraphsJsonPath(), `${JSON.stringify(data, null, 2)}\n`);
+  tree.write(subgraphsJsonPath(root), `${JSON.stringify(data, null, 2)}\n`);
 }
 
-function upsertSubgraphEntry(tree: Tree, entry: SubgraphEntry): void {
-  const path = subgraphsJsonPath();
+function upsertSubgraphEntry(
+  tree: Tree,
+  root: string,
+  entry: SubgraphEntry,
+): void {
+  const path = subgraphsJsonPath(root);
   const raw = tree.read(path, 'utf-8');
   const data: { subgraphs: SubgraphEntry[] } = raw
     ? JSON.parse(raw)
@@ -96,12 +137,20 @@ function upsertSubgraphEntry(tree: Tree, entry: SubgraphEntry): void {
   }
 
   data.subgraphs.push(entry);
-  writeSubgraphsJson(tree, data);
+  writeSubgraphsJson(root, tree, data);
 }
 
-async function scaffoldGateway(tree: Tree): Promise<void> {
+async function scaffoldGateway(
+  tree: Tree,
+  product: string,
+  root: string,
+): Promise<void> {
+  const projectName = `${product}-gateway`;
+  const port = pickBackendPort(tree, 4000);
+
   await applicationGenerator(tree, {
-    directory: GATEWAY_ROOT,
+    directory: root,
+    name: projectName,
     bundler: 'esbuild',
     framework: 'none',
     unitTestRunner: 'jest',
@@ -110,13 +159,14 @@ async function scaffoldGateway(tree: Tree): Promise<void> {
     swcJest: true,
   } as Parameters<typeof applicationGenerator>[1]);
 
-  tree.delete(joinPathFragments(GATEWAY_ROOT, 'src/main.ts'));
+  tree.delete(joinPathFragments(root, 'src/main.ts'));
 
   // esbuild's bundle:false preserves the full source path under dist
-  // (dist/apps/gateway/src/main.js, not dist/main.js) — the asset's output
-  // path must mirror that nesting so subgraphs.ts's readFileSync(__dirname, ...)
-  // finds it (same reasoning as graphql-service's schema.graphql asset).
-  const gatewayConfig = readProjectConfiguration(tree, 'gateway');
+  // (dist/apps/<product>/gateway/src/main.js, not dist/main.js) — the
+  // asset's output path must mirror that nesting so subgraphs.ts's
+  // readFileSync(__dirname, ...) finds it (same reasoning as
+  // graphql-service's schema.graphql asset).
+  const gatewayConfig = readProjectConfiguration(tree, projectName);
   const buildTarget = gatewayConfig.targets?.['build'];
   if (buildTarget) {
     buildTarget.options = {
@@ -124,9 +174,9 @@ async function scaffoldGateway(tree: Tree): Promise<void> {
       assets: [
         ...((buildTarget.options?.['assets'] as unknown[] | undefined) ?? []),
         {
-          input: joinPathFragments(GATEWAY_ROOT, 'src'),
+          input: joinPathFragments(root, 'src'),
           glob: 'subgraphs.json',
-          output: joinPathFragments(GATEWAY_ROOT, 'src'),
+          output: joinPathFragments(root, 'src'),
         },
       ],
     };
@@ -134,15 +184,15 @@ async function scaffoldGateway(tree: Tree): Promise<void> {
   gatewayConfig.tags = [
     ...new Set([...(gatewayConfig.tags ?? []), 'type:service']),
   ];
-  updateProjectConfiguration(tree, 'gateway', gatewayConfig);
+  updateProjectConfiguration(tree, projectName, gatewayConfig);
 
   tree.write(
-    joinPathFragments(GATEWAY_ROOT, 'src/subgraphs.json'),
+    joinPathFragments(root, 'src/subgraphs.json'),
     `${JSON.stringify({ subgraphs: [] }, null, 2)}\n`,
   );
 
   tree.write(
-    joinPathFragments(GATEWAY_ROOT, 'src/subgraphs.ts'),
+    joinPathFragments(root, 'src/subgraphs.ts'),
     `import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -176,7 +226,7 @@ function envVarFor(subgraphName: string): string {
   );
 
   tree.write(
-    joinPathFragments(GATEWAY_ROOT, 'src/main.ts'),
+    joinPathFragments(root, 'src/main.ts'),
     `import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { ApolloGateway, IntrospectAndCompose } from '@apollo/gateway';
@@ -188,9 +238,9 @@ async function main() {
   });
 
   const server = new ApolloServer({ gateway });
-  const port = Number(process.env['PORT'] ?? 4000);
+  const port = Number(process.env['PORT'] ?? ${port});
   const { url } = await startStandaloneServer(server, { listen: { port } });
-  console.log(\`Gateway ready at \${url} — composing \${subgraphs.length} subgraph(s): \${subgraphs.map((s) => s.name).join(', ') || '(none yet)'}\`);
+  console.log(\`${product} gateway ready at \${url} — composing \${subgraphs.length} subgraph(s): \${subgraphs.map((s) => s.name).join(', ') || '(none yet)'}\`);
 }
 
 main().catch((error: unknown) => {
@@ -200,9 +250,9 @@ main().catch((error: unknown) => {
 `,
   );
 
-  tree.delete(joinPathFragments(GATEWAY_ROOT, 'src/main.spec.ts'));
+  tree.delete(joinPathFragments(root, 'src/main.spec.ts'));
   tree.write(
-    joinPathFragments(GATEWAY_ROOT, 'src/subgraphs.spec.ts'),
+    joinPathFragments(root, 'src/subgraphs.spec.ts'),
     `import { subgraphs } from './subgraphs';
 
 describe('subgraphs', () => {
@@ -213,7 +263,7 @@ describe('subgraphs', () => {
 `,
   );
 
-  const packageJsonPath = joinPathFragments(GATEWAY_ROOT, 'package.json');
+  const packageJsonPath = joinPathFragments(root, 'package.json');
   if (tree.exists(packageJsonPath)) {
     updateJson(tree, packageJsonPath, (json) => {
       json.dependencies = {
@@ -227,19 +277,23 @@ describe('subgraphs', () => {
   }
 
   tree.write(
-    joinPathFragments(GATEWAY_ROOT, 'README.md'),
-    `# gateway
+    joinPathFragments(root, 'README.md'),
+    `# ${projectName}
 
-The Apollo Federation Gateway, created automatically the first time a
-GraphQL service is generated with \`--gateway=new\`.
+The Apollo Federation Gateway for the **${product}** product, created
+automatically the first time one of ${product}'s GraphQL services is
+generated with \`--product=${product} --gateway=new\`.
 
 Composes every registered subgraph (see \`src/subgraphs.json\`, edited by
-\`nx g graphql-service ... --gateway=new|existing\` — never by hand) into one
-supergraph via \`IntrospectAndCompose\`. Each subgraph's URL can be
-overridden at runtime via \`<SUBGRAPH_NAME>_SERVICE_URL\` env vars without a
-rebuild — see \`src/subgraphs.ts\`.
+\`nx g graphql-service ... --product=${product} --gateway=new|existing\` —
+never by hand) into one supergraph via \`IntrospectAndCompose\`. Each
+subgraph's URL can be overridden at runtime via \`<SUBGRAPH_NAME>_SERVICE_URL\`
+env vars without a rebuild — see \`src/subgraphs.ts\`.
 
-\`nx serve gateway\`
+Scoped to this product only — a service belonging to a different product
+has its own separate gateway, never this one.
+
+\`nx serve ${projectName}\`
 `,
   );
 }

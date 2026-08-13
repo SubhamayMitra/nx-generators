@@ -25,10 +25,30 @@
         ]
       }
     },
+    "product": {
+      "type": "string",
+      "description": "Product this service belongs to, e.g. storefront (the service is created at apps/<product>/<name>-service and, if federated, its gateway lives at apps/<product>/gateway). Omit for a standalone service with no product owner — such a service can't be federated (--gateway must be none).",
+      "x-prompt": "Which product does this service belong to (e.g. storefront)? Leave blank for a standalone service with no product owner."
+    },
     "gateway": {
       "type": "string",
-      "description": "Federation mode. Omit to auto-detect: existing if apps/gateway is present, otherwise none — federation is never enabled automatically.",
-      "enum": ["none", "new", "existing"]
+      "description": "Federation mode. Requires --product — a standalone service (no --product) can only be none. Omit (with --product set) to auto-detect: existing if that product's gateway is already present, otherwise none — federation is never enabled automatically.",
+      "enum": ["none", "new", "existing"],
+      "x-prompt": {
+        "message": "Should this service be exposed through an Apollo Federation gateway?",
+        "type": "list",
+        "items": [
+          { "value": "none", "label": "No — plain standalone Apollo Server" },
+          {
+            "value": "new",
+            "label": "Yes — create a new gateway for this product"
+          },
+          {
+            "value": "existing",
+            "label": "Yes — register into this product's existing gateway"
+          }
+        ]
+      }
     }
   },
   "required": ["name", "datasource"]

@@ -3,7 +3,11 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "generate:shell": "nx g shell",
+    "generate:mfe": "nx g mfe",
+    "generate:feature": "nx g feature",
+    "generate:graphql-service": "nx g graphql-service"
   },
   "private": true,
   "lint-staged": {
@@ -87,6 +91,7 @@
   },
   "workspaces": [
     "apps/*",
+    "apps/*/*",
     "libs/*",
     "tools/*"
   ],

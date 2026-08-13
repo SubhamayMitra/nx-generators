@@ -17,6 +17,7 @@ import { patchRspackConfigForWorkspace } from '../../utils/patch-rspack-config';
 import { writeAppJestConfig } from '../../utils/write-app-jest-config';
 import { pickAvailablePort } from '../../utils/pick-available-port';
 import { addProjectTags } from '../../utils/add-project-tags';
+import { relocateProject } from '../../utils/relocate-project';
 import type { ShellGeneratorSchema } from './schema';
 
 interface ConsumerGeneratorSchema {
@@ -36,7 +37,10 @@ export async function shellGenerator(
 ) {
   const bundler = options.bundler ?? 'rspack';
   const projectName = `${options.name}-shell`;
-  const projectRoot = `apps/${projectName}`;
+  // Nested one level under this shell's own product folder, e.g.
+  // apps/storefront/shell — keeps apps/ from accumulating one flat entry
+  // per shell/MFE as more products are added.
+  const projectRoot = `apps/${options.name}/shell`;
 
   if (bundler === 'rspack') {
     // @nx/react:consumer always defaults to the same base port regardless of
@@ -44,11 +48,17 @@ export async function shellGenerator(
     // collision detection. Pick a free one ourselves (see mfe.ts, which has
     // the identical issue for @nx/react:provider).
     const port = pickAvailablePort(tree, 8100);
+    // @nx/react:consumer infers the project name from --directory's trailing
+    // segment (no separate `name` option) — generate under a directory
+    // whose trailing segment already IS `projectName`, so it registers
+    // correctly, then relocate to the shorter final `projectRoot` below.
+    const generateRoot = `apps/${options.name}/${projectName}`;
     await consumerGenerator(tree, {
-      directory: projectRoot,
+      directory: generateRoot,
       bundler: 'rspack',
       port,
     });
+    await relocateProject(tree, projectName, projectRoot);
     scaffoldRspackShell(tree, projectRoot);
     writeAppLayer(tree, projectRoot, projectName);
     writeAppJestConfig(tree, projectRoot, projectName);
@@ -60,9 +70,12 @@ export async function shellGenerator(
     // Given rarer use, this path gets the MF shared-singleton config and the
     // runtime JSON manifest Nx already scaffolds, but not the full
     // RootLayout/data-router rewrite the rspack path gets — see this
-    // project's README for what's identical vs. different.
+    // project's README for what's identical vs. different. Unlike
+    // :consumer, :host accepts an explicit `name` distinct from
+    // `directory`, so no relocate-after-generate dance is needed here.
     await hostGenerator(tree, {
       directory: projectRoot,
+      name: projectName,
       bundler: 'webpack',
       dynamic: true,
       style: 'scss',
@@ -74,7 +87,7 @@ export async function shellGenerator(
   }
 
   patchIndexHtmlBaseHref(tree, projectRoot);
-  patchAppTsconfig(tree, joinPathFragments(projectRoot, 'tsconfig.json'));
+  patchAppTsconfig(tree, projectRoot);
   addProjectTags(tree, projectName, ['type:shell']);
   addAppDependencies(tree, projectRoot, bundler);
   writeReadme(tree, projectRoot, projectName, bundler);

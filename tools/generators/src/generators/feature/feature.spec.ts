@@ -27,19 +27,19 @@ describe('feature generator', () => {
   });
 
   it('adds the feature files without touching bundler or shell routing config', async () => {
-    const mfBefore = tree.read('apps/demo-shell/src/mf.ts', 'utf-8');
+    const mfBefore = tree.read('apps/demo/shell/src/mf.ts', 'utf-8');
     const rspackBefore = tree.read(
-      'apps/demo-mfe-search/rspack.config.ts',
+      'apps/demo/mfe-search/rspack.config.ts',
       'utf-8',
     );
 
     await featureGenerator(tree, options);
 
-    expect(tree.exists('apps/demo-mfe-search/src/features/test/Test.tsx')).toBe(
+    expect(tree.exists('apps/demo/mfe-search/src/features/test/Test.tsx')).toBe(
       true,
     );
-    expect(tree.read('apps/demo-shell/src/mf.ts', 'utf-8')).toBe(mfBefore);
-    expect(tree.read('apps/demo-mfe-search/rspack.config.ts', 'utf-8')).toBe(
+    expect(tree.read('apps/demo/shell/src/mf.ts', 'utf-8')).toBe(mfBefore);
+    expect(tree.read('apps/demo/mfe-search/rspack.config.ts', 'utf-8')).toBe(
       rspackBefore,
     );
   });
@@ -47,7 +47,7 @@ describe('feature generator', () => {
   it('registers a relative route so the feature works both standalone and embedded under a shell', async () => {
     await featureGenerator(tree, options);
     const routes = tree.read(
-      'apps/demo-mfe-search/src/app/routes.tsx',
+      'apps/demo/mfe-search/src/app/routes.tsx',
       'utf-8',
     );
     expect(routes).toContain("path: 'test'");
